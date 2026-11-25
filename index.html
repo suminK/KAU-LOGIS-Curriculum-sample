@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#f5f5f7">
   <title>KAU 물류 교육과정 (샘플)</title>
   <script>
-    /* Set the theme before first paint: saved choice, else the device setting. */
+    /* Set the theme before first paint: saved choice, else light. */
     (function () {
       var t = null;
       try { t = localStorage.getItem("kau-logis-theme"); } catch (e) {}
-      if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      if (t !== "light" && t !== "dark") t = "light";
       document.documentElement.dataset.theme = t;
     })();
   </script>

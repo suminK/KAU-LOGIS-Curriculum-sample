@@ -39,7 +39,7 @@
   var TYPES_USED = TYPE_ORDER.filter(function (k) { return COURSES.some(function (c) { return c.type === k; }); });
   var HAS_LANG = COURSES.some(function (c) { return c.language; });
 
-  /* ---------- theme: follows the device until the viewer picks one ---------- */
+  /* ---------- theme: light unless the viewer picks dark ---------- */
   var root = document.documentElement;
   function applyTheme(theme) {
     root.dataset.theme = theme;
@@ -57,9 +57,6 @@
     var next = root.dataset.theme === "dark" ? "light" : "dark";
     try { localStorage.setItem("kau-logis-theme", next); } catch (e) { /* ignore */ }
     applyTheme(next);
-  });
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
-    if (!savedTheme()) applyTheme(e.matches ? "dark" : "light");
   });
 
   /* ---------- filtering ---------- */
