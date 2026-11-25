@@ -41,7 +41,8 @@
   var HAS_LANG = COURSES.some(function (c) { return c.language; });
   /* 개설여부: whether a course is offered this semester (only when the data says so) */
   var HAS_OPEN = COURSES.some(function (c) { return typeof c.open === "boolean"; });
-  var OPEN_TEXT = "이번 학기 개설", CLOSED_TEXT = "이번 학기 미개설";
+  var TERM = DATA.meta.term || "이번 학기";
+  var OPEN_TEXT = TERM + " 개설", CLOSED_TEXT = TERM + " 미개설";
 
   var CALM = window.matchMedia("(prefers-reduced-motion: reduce)");
   var EASE = "cubic-bezier(.32, .72, 0, 1)";
@@ -142,6 +143,7 @@
     $("f-lang").innerHTML = segBtn("전체", state.inst === null, 'data-f="inst" data-v=""') +
       ["ko", "en"].map(function (v) { return segBtn(LANG[v], state.inst === v, 'data-f="inst" data-v="' + v + '"'); }).join("");
     $("f-open").hidden = !HAS_OPEN;
+    $("f-open-term").textContent = TERM;
     $("f-tags").innerHTML = Object.keys(DATA.tags).map(function (k) {
       return chip(tagLabel(k), state.tags.indexOf(k) >= 0, 'data-f="tag" data-v="' + esc(k) + '"');
     }).join("");

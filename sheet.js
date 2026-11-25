@@ -11,7 +11,9 @@
    - 학기: 1 or 2; leave empty (or write 공통) for courses not tied to a semester
    - 태그, 선수 과목, 관련 과목: several values separated by commas
    - 영어강의여부: a checkbox (checked = taught in English)
-   - 개설여부: a checkbox (checked = offered this semester)
+   - 개설여부: a checkbox (checked = offered this semester). Name the column
+     "2026-2 개설여부" and the page says "2026-2 개설"; without a semester in
+     the name it uses "term" from data/courses.js.
    - 설명: one paragraph, or several lines in one cell (Alt+Enter) for 개조식
 
    Tag names and course names that match nothing are left out of the page.
@@ -74,7 +76,16 @@
 
   function toCourses(rows) {
     if (!rows.length) throw new Error("empty sheet");
-    var head = rows[0].map(function (h) { return COLS[norm(h)] || null; });
+    var head = rows[0].map(function (h) {
+      /* "2026-2 개설여부" or "개설여부 (2026-2)": the rest of the name is the semester label */
+      var m = /개설\s*여부/.exec(h);
+      if (m) {
+        var term = h.replace(m[0], "").replace(/[()\[\]:]/g, " ").replace(/\s+/g, " ").trim();
+        if (term) DATA.meta.term = term;
+        return "open";
+      }
+      return COLS[norm(h)] || null;
+    });
     if (head.indexOf("name") < 0 || head.indexOf("year") < 0) throw new Error("no 과목명 / 학년 column");
 
     var tagKey = {};
