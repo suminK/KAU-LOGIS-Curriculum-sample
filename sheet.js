@@ -27,7 +27,11 @@
     "전공": "major", "기초필수": "basic", "교양필수": "general", "전공내규필수": "dept",
     "전공필수": "required", "전공선택": "elective"
   };
-  var LANGS = { "한국어": "ko", "영어": "en", "한국어영어": "both", "한영": "both" };
+  var LANGS = {
+    "한국어": "ko", "국문": "ko", "korean": "ko", "ko": "ko",
+    "영어": "en", "영어강의": "en", "영문": "en", "english": "en", "en": "en",
+    "한국어영어": "both", "한영": "both", "both": "both"
+  };
 
   /* compare text ignoring spaces, dots and letter case */
   function norm(s) { return String(s || "").replace(/[\s·・.\-_/]/g, "").toLowerCase(); }
