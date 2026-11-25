@@ -138,8 +138,6 @@
       [1, 2, 3, 4].map(function (y) { return segBtn(y, state.year === y, 'data-f="year" data-v="' + y + '"', "학년"); }).join("");
     $("f-sem").innerHTML = segBtn("전체", state.sem === null, 'data-f="sem" data-v=""') +
       [1, 2].map(function (n) { return segBtn(n, state.sem === n, 'data-f="sem" data-v="' + n + '"', "학기"); }).join("");
-    $("f-type").innerHTML = segBtn("전체", state.type === null, 'data-f="type" data-v=""') +
-      TYPES_USED.map(function (v) { return segBtn(TYPE[v], state.type === v, 'data-f="type" data-v="' + v + '"'); }).join("");
     $("row-lang").hidden = !HAS_LANG;
     $("f-lang").innerHTML = segBtn("전체", state.inst === null, 'data-f="inst" data-v=""') +
       ["ko", "en"].map(function (v) { return segBtn(LANG[v], state.inst === v, 'data-f="inst" data-v="' + v + '"'); }).join("");

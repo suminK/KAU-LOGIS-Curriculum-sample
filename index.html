@@ -14,7 +14,7 @@
       document.documentElement.dataset.theme = t;
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=20261125-1">
+  <link rel="stylesheet" href="styles.css?v=20261125-2">
 </head>
 <body>
   <header class="top">
@@ -36,15 +36,14 @@
     <div class="wrap">
       <div class="bar-row">
         <input id="q" type="search" autocomplete="off" placeholder="과목명, 키워드 검색" aria-label="과목명, 키워드 검색">
-        <button type="button" id="f-open" class="switch" role="switch" aria-checked="false" hidden>
-          <span class="switch-track" aria-hidden="true"></span><span><span class="u">이번 학기 </span>개설 과목만</span>
-        </button>
       </div>
       <div class="chips" id="f-tags"></div>
       <div class="filter-rows">
+        <button type="button" id="f-open" class="switch" role="switch" aria-checked="false" hidden>
+          <span class="switch-track" aria-hidden="true"></span><span><span class="u">이번 학기 </span>개설 과목만</span>
+        </button>
         <div class="row"><span class="row-label">학년</span><div class="seg" id="f-year"></div></div>
         <div class="row"><span class="row-label">학기</span><div class="seg" id="f-sem"></div></div>
-        <div class="row"><span class="row-label">구분</span><div class="seg" id="f-type"></div></div>
         <div class="row" id="row-lang"><span class="row-label">강의언어</span><div class="seg" id="f-lang"></div></div>
       </div>
     </div>
@@ -67,7 +66,7 @@
   <dialog id="detail" aria-labelledby="d-title"></dialog>
 
   <!-- change the v= value on all three lines whenever a file changes, so browsers fetch the new one -->
-  <script src="data/courses.js?v=20261125-1"></script>
-  <script src="sheet.js?v=20261125-1"></script>
+  <script src="data/courses.js?v=20261125-2"></script>
+  <script src="sheet.js?v=20261125-2"></script>
 </body>
 </html>
