@@ -40,7 +40,7 @@ window.CURRICULUM = {
   },
 
   tags: {
-    foundation: "기초·교양",
+    foundation: "기초",
     logistics:  "물류·SCM",
     aviation:   "항공",
     transport:  "교통",
@@ -53,9 +53,6 @@ window.CURRICULUM = {
 
   courses: [
     /* ---------- 1학년 ---------- */
-    { id: "pre-sw", year: 1, semester: 0, type: "general", tags: ["foundation", "data"],
-      name: "입학전SW교육",
-      note: "꿈꾸는 인공지능, 세상을 바꾸는 SW. 정규학기 미개설. 수시 1~2월, 정시 7~8월에 이수하며 여름계절학기 학점으로 인정 (미이수자는 매년 여름학기에 이수 가능)." },
     { id: "intro-air-logis", year: 1, semester: 0, type: "basic", tags: ["foundation", "aviation", "logistics"],
       name: "항공교통·물류의 입문" },
     { id: "intro-biz", year: 1, semester: 0, type: "basic", tags: ["foundation", "business"],
@@ -66,24 +63,6 @@ window.CURRICULUM = {
     { id: "linear-algebra", year: 1, semester: 0, type: "dept", tags: ["foundation"],
       name: "선형대수학",
       note: "물류전공 내규: 졸업 전까지 미분적분학과 선형대수학 두 과목을 모두 이수해야 합니다." },
-
-    { id: "kau-space", year: 1, semester: 1, type: "general", tags: ["foundation"],
-      name: "KAU SPACE 인성과 진로" },
-    { id: "writing", year: 1, semester: 1, type: "general", tags: ["foundation"],
-      name: "교양글쓰기" },
-    { id: "intro-ai", year: 1, semester: 1, type: "general", tags: ["foundation", "data"],
-      name: "인공지능소개" },
-    { id: "career-1", year: 1, semester: 1, type: "general", tags: ["foundation"],
-      name: "진로탐구 I(항경대)" },
-    { id: "coding-python", year: 1, semester: 1, type: "general", tags: ["foundation", "data"],
-      name: "코딩입문(Python)" },
-
-    { id: "english-comm", year: 1, semester: 2, type: "general", tags: ["foundation"],
-      name: "영어커뮤니케이션" },
-    { id: "career-2", year: 1, semester: 2, type: "general", tags: ["foundation"],
-      name: "진로탐구 II(항경대)" },
-    { id: "intro-stats", year: 1, semester: 2, type: "general", tags: ["foundation", "data"],
-      name: "통계학입문" },
 
     /* ---------- 2학년 1학기 ---------- */
     { id: "transport-logis-intro", year: 2, semester: 1, type: "major", tags: ["transport", "logistics"],
