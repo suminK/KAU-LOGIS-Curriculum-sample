@@ -433,3 +433,4 @@ dialog[open]::backdrop { background: rgb(0 0 0 / .32); }
 .d-alt { display: grid; gap: .3rem; padding: .45rem; border-radius: 16px; background: var(--fill); }
 .d-alt .d-link { background: var(--sheet-bg); }
 .d-or { justify-self: center; font-size: .75rem; font-weight: 600; color: var(--muted); }
+.d-alt .d-link.plain { background: none; }

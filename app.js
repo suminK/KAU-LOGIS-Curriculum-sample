@@ -222,22 +222,28 @@
   function linkSection(title, list, others, alts) {
     others = others || [];
     if (!list.length && !others.length) return "";
-    var groupOf = {}, done = {};
-    (alts || []).forEach(function (g) { g.forEach(function (id) { if (!groupOf[id]) groupOf[id] = g; }); });
+    var groupOf = {}, done = [];
+    (alts || []).forEach(function (g) {
+      g.forEach(function (id) { if (typeof id === "string" && !groupOf[id]) groupOf[id] = g; });
+    });
+    function plain(text) { return '<div class="d-link plain"><span class="d-link-name">' + esc(text) + "</span></div>"; }
     return '<section class="d-sec"><h3 class="d-h">' + title + '<span class="n">' + (list.length + others.length) + "</span></h3>" +
       '<div class="d-links">' + list.map(function (c) {
         var g = groupOf[c.id];
         if (!g) return linkBtn(c);
-        if (done[c.id]) return "";
-        var members = list.filter(function (x) { return groupOf[x.id] === g; });
-        members.forEach(function (x) { done[x.id] = true; });
-        if (members.length < 2) return linkBtn(c);
-        return '<div class="d-alt">' + members.map(linkBtn).join('<span class="d-or">또는</span>') + "</div>";
+        if (done.indexOf(g) >= 0) return "";
+        done.push(g);
+        /* in the order written: courses as links, anything else as plain text */
+        var members = g.map(function (e) {
+          if (typeof e !== "string") return plain(e.text);
+          var x = BY_ID[e];
+          return x && list.indexOf(x) >= 0 ? linkBtn(x) : "";
+        }).filter(Boolean);
+        if (members.length < 2) return members.join("");
+        return '<div class="d-alt">' + members.join('<span class="d-or">또는</span>') + "</div>";
       }).join("") +
       /* text from the sheet that is not a course name: shown as written, nothing to jump to */
-      others.map(function (name) {
-        return '<div class="d-link plain"><span class="d-link-name">' + esc(name) + "</span></div>";
-      }).join("") + "</div></section>";
+      others.map(plain).join("") + "</div></section>";
   }
   function fact(label, value) { return "<div><dt>" + label + "</dt><dd>" + esc(value) + "</dd></div>"; }
 

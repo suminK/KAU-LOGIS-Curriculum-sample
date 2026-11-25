@@ -156,9 +156,19 @@
         c[k].forEach(function (name) {
           var id = idByName[norm(name)];
           if (id) { ids.push(id); return; }
-          var pieces = name.split(/\s+(?:or|또는|혹은)\s+/i).map(function (x) { return idByName[norm(x)]; });
-          if (pieces.length > 1 && pieces.every(Boolean)) {
-            ids = ids.concat(pieces);
+          /* each side of "or" is a course id, or { text } when it is not a course name */
+          var pieces = name.split(/\s+(?:or|또는|혹은)\s+/i).map(function (x) {
+            x = x.trim();
+            return idByName[norm(x)] || { text: x };
+          });
+          var found = pieces.filter(function (p) { return typeof p === "string"; });
+          if (pieces.length > 1 && found.length) {
+            ids = ids.concat(found);
+            pieces.forEach(function (p) {
+              if (typeof p === "string") return;
+              problem(c, col + "에 과목명이 아닌 내용이 있어 링크 없이 그대로 표시합니다: " + p.text);
+              if (k === "_rel" && others.indexOf(p.text) < 0) others.push(p.text);
+            });
             alts.push(pieces);
             return;
           }
