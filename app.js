@@ -244,7 +244,7 @@
     void el.offsetWidth;                               /* restart the animation */
     el.classList.add("flash");
     clearTimeout(flashTimer);
-    flashTimer = setTimeout(function () { el.classList.remove("flash"); }, 3000);
+    flashTimer = setTimeout(function () { el.classList.remove("flash"); }, 1500);
   }
 
   /* ---------- routing: #scm opens that course ---------- */

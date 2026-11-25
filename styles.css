@@ -218,9 +218,9 @@ h1 { font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.1; letter-spacing: -
 .code { display: block; margin-top: .1rem; font-size: .75rem; color: var(--faint); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
 .card-prof { display: block; margin-top: .15rem; font-size: .8125rem; color: var(--muted); }
 /* shown for a moment after jumping here from the detail panel */
-.card.flash { animation: flash 2.8s ease-out; }
+.card.flash { animation: flash 1.4s ease-out; }
 @keyframes flash {
-  0%, 72% { box-shadow: 0 0 0 2px var(--accent), 0 0 0 7px var(--accent-tint); }
+  0%, 60% { box-shadow: 0 0 0 2px var(--accent), 0 0 0 7px var(--accent-tint); }
 }
 .card-meta { margin-top: .65rem; display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
 
