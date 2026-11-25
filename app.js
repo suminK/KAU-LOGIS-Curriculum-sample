@@ -227,7 +227,7 @@
       g.forEach(function (id) { if (typeof id === "string" && !groupOf[id]) groupOf[id] = g; });
     });
     function plain(text) { return '<div class="d-link plain"><span class="d-link-name">' + esc(text) + "</span></div>"; }
-    return '<section class="d-sec"><h3 class="d-h">' + title + '<span class="n">' + (list.length + others.length) + "</span></h3>" +
+    return '<section class="d-sec"><h3 class="d-h">' + title + "</h3>" +
       '<div class="d-links">' + list.map(function (c) {
         var g = groupOf[c.id];
         if (!g) return linkBtn(c);
