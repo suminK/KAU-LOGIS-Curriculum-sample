@@ -211,21 +211,32 @@
   var CLOSE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
 
   /* a section of courses that jump back to the list when pressed */
-  function linkSection(title, list, others) {
+  function linkBtn(c) {
+    var sub = yearN(c.year) + " " + semN(c.semester) + (c.instructor ? " · " + profText(c) : "");
+    return '<button type="button" class="d-link" data-jump="' + esc(c.id) + '">' +
+      '<span><span class="d-link-name">' + esc(c.name) + '</span><span class="d-link-sub">' + esc(sub) +
+      (HAS_OPEN && c.open ? ' · <span class="open-mark">개설</span>' : "") + "</span></span>" +
+      ARROW + "</button>";
+  }
+  /* alts: groups of course ids where either one will do ("A or B" in the sheet) */
+  function linkSection(title, list, others, alts) {
     others = others || [];
     if (!list.length && !others.length) return "";
+    var groupOf = {}, done = {};
+    (alts || []).forEach(function (g) { g.forEach(function (id) { if (!groupOf[id]) groupOf[id] = g; }); });
     return '<section class="d-sec"><h3 class="d-h">' + title + '<span class="n">' + (list.length + others.length) + "</span></h3>" +
       '<div class="d-links">' + list.map(function (c) {
-        var sub = yearN(c.year) + " " + semN(c.semester) + (c.instructor ? " · " + profText(c) : "");
-        return '<button type="button" class="d-link" data-jump="' + esc(c.id) + '">' +
-          '<span><span class="d-link-name">' + esc(c.name) + '</span><span class="d-link-sub">' + esc(sub) +
-          (HAS_OPEN && c.open ? ' · <span class="open-mark">개설</span>' : "") + "</span></span>" +
-          ARROW + "</button>";
+        var g = groupOf[c.id];
+        if (!g) return linkBtn(c);
+        if (done[c.id]) return "";
+        var members = list.filter(function (x) { return groupOf[x.id] === g; });
+        members.forEach(function (x) { done[x.id] = true; });
+        if (members.length < 2) return linkBtn(c);
+        return '<div class="d-alt">' + members.map(linkBtn).join('<span class="d-or">또는</span>') + "</div>";
       }).join("") +
-      /* courses outside this list: a name only, nothing to jump to */
+      /* text from the sheet that is not a course name: shown as written, nothing to jump to */
       others.map(function (name) {
-        return '<div class="d-link plain"><span><span class="d-link-name">' + esc(name) +
-          '</span><span class="d-link-sub">이 목록에 없는 과목</span></span></div>';
+        return '<div class="d-link plain"><span class="d-link-name">' + esc(name) + "</span></div>";
       }).join("") + "</div></section>";
   }
   function fact(label, value) { return "<div><dt>" + label + "</dt><dd>" + esc(value) + "</dd></div>"; }
@@ -255,7 +266,7 @@
       descHtml(c.description) +
       (c.note ? '<p class="d-note">' + esc(c.note) + "</p>" : "") +
       (facts ? '<dl class="d-facts">' + facts + "</dl>" : "") +
-      linkSection("선수 권장 과목", pre, c.prereqsOther) +
+      linkSection("선수 권장 과목", pre, c.prereqsOther, c.prereqAlts) +
       linkSection("관련 과목", related, c.relatedOther) +
       (pre.length || related.length ? '<p class="d-hint">과목을 누르면 목록에서 위치를 보여줍니다.</p>' : "") +
       (c.syllabus ? '<a class="syllabus" target="_blank" rel="noopener" href="' + esc(c.syllabus) + '">강의계획서 보기</a>' : "") +

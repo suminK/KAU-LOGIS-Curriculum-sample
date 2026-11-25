@@ -16,8 +16,9 @@
      the name it uses "term" from data/courses.js.
    - 설명: one paragraph, or several lines in one cell (Alt+Enter) for 개조식
 
-   Tag names that match nothing are left out of the page. Course names in
-   선수 과목 / 관련 과목 that are not in the list are shown as plain names (no link).
+   Tag names that match nothing are left out of the page. In 선수 과목 / 관련 과목,
+   "A or B" (or "A 또는 B") links both courses as alternatives; any other text
+   that is not a course name is shown as written, without a link.
    Open the page with ?check at the end of the address to see a list of them. */
 (function () {
   "use strict";
@@ -148,19 +149,27 @@
     /* course names in 선수 과목 / 관련 과목 -> ids; names that match nothing are left out */
     courses.forEach(function (c) {
       ["_pre", "_rel"].forEach(function (k) {
-        var others = [];   /* names outside the list: shown as plain text, not as links */
-        var ids = c[k].map(function (name) {
+        var others = [];   /* text that is not a course name: shown as written, not as a link */
+        var alts = [];     /* "A or B" / "A 또는 B": either course will do */
+        var col = k === "_pre" ? "선수 권장 과목" : "관련 과목";
+        var ids = [];
+        c[k].forEach(function (name) {
           var id = idByName[norm(name)];
-          var col = k === "_pre" ? "선수 권장 과목" : "관련 과목";
-          if (!id) {
-            if (others.indexOf(name) < 0) others.push(name);
-            problem(c, col + "의 과목이 목록에 없어 링크 없이 이름만 표시합니다: " + name);
+          if (id) { ids.push(id); return; }
+          var pieces = name.split(/\s+(?:or|또는|혹은)\s+/i).map(function (x) { return idByName[norm(x)]; });
+          if (pieces.length > 1 && pieces.every(Boolean)) {
+            ids = ids.concat(pieces);
+            alts.push(pieces);
+            return;
           }
-          else if (id === c.id) problem(c, col + "에 자기 자신이 적혀 있습니다");
-          return id;
-        }).filter(function (id, i, all) { return id && id !== c.id && all.indexOf(id) === i; });
+          if (others.indexOf(name) < 0) others.push(name);
+          problem(c, col + "에 과목명이 아닌 내용이 있어 링크 없이 그대로 표시합니다: " + name);
+        });
+        if (ids.indexOf(c.id) >= 0) problem(c, col + "에 자기 자신이 적혀 있습니다");
+        ids = ids.filter(function (id, i, all) { return id !== c.id && all.indexOf(id) === i; });
         c[k === "_pre" ? "prereqs" : "related"] = ids;
         if (others.length) c[k === "_pre" ? "prereqsOther" : "relatedOther"] = others;
+        if (alts.length && k === "_pre") c.prereqAlts = alts;
         delete c[k];
       });
     });
