@@ -97,7 +97,7 @@ h1 { font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.1; letter-spacing: -
 .seg button {
   border: 0; background: none; border-radius: 7px;
   padding: .3rem .8rem; font-size: .8125rem; font-weight: 500; white-space: nowrap;
-  transition: transform .1s ease-out, background-color .2s ease;
+  transition: transform .1s ease-out, background-color .2s ease, box-shadow .2s ease;
 }
 .seg button:active { transform: scale(.96); }
 .seg button[aria-pressed="true"] {
@@ -170,6 +170,9 @@ h1 { font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.1; letter-spacing: -
 .link { border: 0; background: none; padding: 0; color: var(--accent); font-size: .8125rem; font-weight: 500; }
 .foot { margin: 3rem 0 3.5rem; font-size: .75rem; line-height: 1.7; color: var(--faint); text-align: center; }
 .foot a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+#list { position: relative; }
+/* copy of a tile that is fading out after a filter change */
+.card.ghost { position: absolute; margin: 0; pointer-events: none; z-index: 0; }
 .empty { padding: 5rem 0; text-align: center; color: var(--muted); }
 
 /* ---------- Year / semester ---------- */

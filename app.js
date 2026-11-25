@@ -40,6 +40,9 @@
   var TYPES_USED = TYPE_ORDER.filter(function (k) { return COURSES.some(function (c) { return c.type === k; }); });
   var HAS_LANG = COURSES.some(function (c) { return c.language; });
 
+  var CALM = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var EASE = "cubic-bezier(.32, .72, 0, 1)";
+
   /* ---------- theme: light unless the viewer picks dark ---------- */
   var root = document.documentElement;
   function applyTheme(theme) {
@@ -57,7 +60,9 @@
   $("theme").addEventListener("click", function () {
     var next = root.dataset.theme === "dark" ? "light" : "dark";
     try { localStorage.setItem("kau-logis-theme", next); } catch (e) { /* ignore */ }
-    applyTheme(next);
+    /* cross-fade the whole page where the browser can; otherwise switch at once */
+    if (document.startViewTransition && !CALM.matches) document.startViewTransition(function () { applyTheme(next); });
+    else applyTheme(next);
   });
 
   /* ---------- filtering ---------- */
@@ -112,7 +117,7 @@
   }
 
   function card(c) {
-    return '<button type="button" class="card" data-id="' + esc(c.id) + '">' +
+    return '<button type="button" class="card" data-id="' + esc(c.id) + '" data-flip="c-' + esc(c.id) + '">' +
       '<span class="card-head"><span class="card-name">' + esc(c.name) + "</span>" +
       (typeof c.credits === "number" ? '<span class="card-credits">' + creditsText(c.credits) + "</span>" : "") + "</span>" +
       (c.code ? '<span class="code">' + esc(c.code) + "</span>" : "") +
@@ -136,9 +141,19 @@
     }).join("");
   }
 
-  function semBlock(title, list, cls) {
+  /* after the first build only the pressed state changes, so colours can fade */
+  function syncFilters() {
+    var cur = { year: state.year, sem: state.sem, type: state.type, inst: state.inst };
+    Array.prototype.forEach.call(document.querySelectorAll(".bar button[data-f]"), function (b) {
+      var f = b.dataset.f, v = b.dataset.v;
+      var on = f === "tag" ? state.tags.indexOf(v) >= 0 : (v === "" ? cur[f] === null : String(cur[f]) === v);
+      b.setAttribute("aria-pressed", String(on));
+    });
+  }
+
+  function semBlock(title, list, cls, key) {
     var cr = sumCredits(list);
-    return '<div class="sem ' + cls + '"><h3>' + title + (cr !== null ? "<span>" + creditsText(cr) + "</span>" : "") + "</h3>" +
+    return '<div class="sem ' + cls + '"><h3 data-flip="' + key + '">' + title + (cr !== null ? "<span>" + creditsText(cr) + "</span>" : "") + "</h3>" +
       (list.length ? '<div class="cards">' + list.map(card).join("") + "</div>" : '<p class="none">해당 과목 없음</p>') +
       "</div>";
   }
@@ -150,7 +165,7 @@
     $("reset").hidden = !filtering();
 
     if (!shown.length) {
-      $("list").innerHTML = '<p class="empty">조건에 맞는 과목이 없습니다.</p>';
+      $("list").innerHTML = '<p class="empty" data-flip="empty">조건에 맞는 과목이 없습니다.</p>';
       return;
     }
     var html = "";
@@ -159,13 +174,13 @@
       if (!inYear.length) return;
       var ycr = sumCredits(inYear);
       var common = inYear.filter(function (c) { return !c.semester; });
-      html += '<section class="year"><h2>' + yearN(y) + (ycr !== null ? "<span>" + creditsText(ycr) + "</span>" : "") + "</h2>";
-      if (common.length) html += semBlock(semN(0), common, "common");
+      html += '<section class="year"><h2 data-flip="y' + y + '">' + yearN(y) + (ycr !== null ? "<span>" + creditsText(ycr) + "</span>" : "") + "</h2>";
+      if (common.length) html += semBlock(semN(0), common, "common", "y" + y + "s0");
       if (inYear.length > common.length) {
         /* with a semester picked, that semester takes the full width */
         html += '<div class="sems' + (state.sem ? " one" : "") + '">';
         (state.sem ? [state.sem] : [1, 2]).forEach(function (s) {
-          html += semBlock(semN(s), inYear.filter(function (c) { return c.semester === s; }), "");
+          html += semBlock(semN(s), inYear.filter(function (c) { return c.semester === s; }), "", "y" + y + "s" + s);
         });
         html += "</div>";
       }
@@ -249,6 +264,59 @@
 
   /* ---------- routing: #scm opens that course ---------- */
   function currentId() { return decodeURIComponent(location.hash.slice(1)); }
+  /* ---------- motion: tiles slide to their new place, fade in and out ---------- */
+  function near(r) { return r.bottom > -200 && r.top < window.innerHeight + 200; }
+  function snapshot() {
+    var map = {};
+    Array.prototype.forEach.call($("list").querySelectorAll("[data-flip]"), function (el) {
+      map[el.dataset.flip] = { el: el, rect: el.getBoundingClientRect() };
+    });
+    return map;
+  }
+  function animateList(before) {
+    var list = $("list");
+    if (!list.animate) return;
+    var origin = list.getBoundingClientRect(), seen = {}, entering = 0;
+    Array.prototype.forEach.call(list.querySelectorAll("[data-flip]"), function (el) {
+      var key = el.dataset.flip, was = before[key], now = el.getBoundingClientRect();
+      seen[key] = true;
+      if (was) {                                   /* stayed: slide from the old place */
+        var dx = was.rect.left - now.left, dy = was.rect.top - now.top;
+        if ((!dx && !dy) || (!near(was.rect) && !near(now))) return;
+        el.animate([{ transform: "translate(" + dx + "px," + dy + "px)" }, { transform: "none" }],
+          { duration: 380, easing: EASE });
+      } else if (near(now)) {                      /* new: fade and rise in */
+        el.animate([{ opacity: 0, transform: "translateY(8px) scale(.97)" }, { opacity: 1, transform: "none" }],
+          { duration: 300, easing: EASE, delay: Math.min(entering++ * 12, 120), fill: "backwards" });
+      }
+    });
+    Object.keys(before).forEach(function (key) {   /* gone: a copy fades out in place */
+      var was = before[key];
+      if (seen[key] || !near(was.rect) || !was.el.classList.contains("card")) return;
+      var ghost = was.el.cloneNode(true);
+      ghost.removeAttribute("data-flip");
+      ghost.removeAttribute("data-id");
+      ghost.classList.remove("flash");
+      ghost.classList.add("ghost");
+      ghost.setAttribute("aria-hidden", "true");
+      ghost.tabIndex = -1;
+      ghost.style.left = (was.rect.left - origin.left) + "px";
+      ghost.style.top = (was.rect.top - origin.top) + "px";
+      ghost.style.width = was.rect.width + "px";
+      ghost.style.height = was.rect.height + "px";
+      list.appendChild(ghost);
+      var a = ghost.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.95)" }],
+        { duration: 200, easing: "ease-out", fill: "forwards" });
+      a.onfinish = a.oncancel = function () { ghost.remove(); };
+    });
+  }
+  /* re-render the list, animating the difference unless motion is reduced */
+  function update() {
+    var before = CALM.matches ? null : snapshot();
+    renderList();
+    if (before) animateList(before);
+  }
+
   function openCourse(id) { location.hash = encodeURIComponent(id); }
   function clearHash() {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
@@ -256,7 +324,7 @@
   window.addEventListener("hashchange", function () { renderDetail(currentId()); });
 
   /* ---------- events ---------- */
-  $("q").addEventListener("input", function (e) { state.q = e.target.value.trim(); renderList(); });
+  $("q").addEventListener("input", function (e) { state.q = e.target.value.trim(); update(); });
 
   document.querySelector(".bar").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-f]");
@@ -270,15 +338,15 @@
       var i = state.tags.indexOf(v);
       if (i >= 0) state.tags.splice(i, 1); else state.tags.push(v);
     }
-    renderFilters();
-    renderList();
+    syncFilters();
+    update();
   });
 
   function resetFilters() {
     state.q = ""; state.year = null; state.sem = null; state.type = null; state.inst = null; state.tags = [];
     $("q").value = "";
-    renderFilters();
-    renderList();
+    syncFilters();
+    update();
   }
   $("reset").addEventListener("click", resetFilters);
 
@@ -308,6 +376,6 @@
       (contact.email ? '<a href="mailto:' + esc(contact.email) + '">' + esc(contact.email) + "</a>" : "");
   }
   renderFilters();
-  renderList();
+  update();
   if (currentId()) renderDetail(currentId());
 })();
