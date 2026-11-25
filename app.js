@@ -159,6 +159,11 @@
   }
 
   function renderList() {
+    if (DATA.meta.stale) {   /* the sheet could not be read: say so instead of listing courses */
+      $("count").textContent = "";
+      $("list").innerHTML = '<p class="empty" data-flip="empty">준비중입니다.</p>';
+      return;
+    }
     var shown = COURSES.filter(matches);
     var total = sumCredits(shown);
     $("count").textContent = "과목 " + shown.length + "개" + (total !== null ? " · " + creditsText(total) : "");
@@ -370,9 +375,9 @@
   /* courses read from the sheet carry no date; a failed read shows the saved copy */
   $("updated").textContent = [
     DATA.meta.source ? "출처: " + DATA.meta.source : "",
-    DATA.meta.live ? "" : "최종 수정 " + DATA.meta.updated,
-    DATA.meta.stale ? "최신 정보를 불러오지 못해 저장된 내용을 표시합니다" : ""
+    DATA.meta.live || DATA.meta.stale ? "" : "최종 수정 " + DATA.meta.updated
   ].filter(Boolean).join(" · ");
+  document.querySelector(".bar").hidden = !!DATA.meta.stale;
   var contact = DATA.meta.contact;
   if (contact && (contact.name || contact.email)) {
     $("contact").hidden = false;

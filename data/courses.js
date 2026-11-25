@@ -41,7 +41,8 @@ window.CURRICULUM = {
     source: "2026 항공·경영대학 물류전공 교과목 체계도",
     contact: { name: "강수민", email: "suminkang@kau.ac.kr" },  // shown at the bottom of the page
     // Google Sheet to read the courses from ("웹에 게시" CSV link). While this is empty,
-    // or when the sheet cannot be reached, the courses saved below are shown instead.
+    // the courses saved below are shown. If the sheet cannot be reached, the page
+    // shows "준비중입니다." instead of a list.
     sheet: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRIEXHI-ZLGUfttydp2gMeT0ybAaPIm1mzW6FMbjoz1hSje5QeO_0tuIly38m4kwSBGoExVSqMVATyU/pub?gid=460418598&single=true&output=csv"
   },
 

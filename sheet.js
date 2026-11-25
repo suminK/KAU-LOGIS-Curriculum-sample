@@ -1,8 +1,8 @@
 /* Loads the course list from a Google Sheet, then starts the page.
 
    The sheet address is "sheet" in data/courses.js (meta). When it is empty,
-   or the sheet cannot be read in time, the courses saved in data/courses.js
-   are shown instead, so the page never comes up empty.
+   the courses saved in data/courses.js are shown. When a sheet is set but
+   cannot be read in time, the page shows "준비중입니다." instead of a list.
 
    Sheet layout: first row = column names, one course per row.
    Columns (order does not matter, unknown columns are ignored):
@@ -141,8 +141,9 @@
       DATA.meta.live = true;
     })
     .catch(function (err) {
-      DATA.meta.stale = true;   /* fall back to the saved copy */
-      if (window.console) console.warn("[sheet] 불러오기 실패, 저장된 사본을 표시합니다:", err);
+      DATA.meta.stale = true;   /* the page shows 준비중입니다 instead of the list */
+      DATA.courses = [];
+      if (window.console) console.warn("[sheet] 불러오기 실패:", err);
     })
     .then(function () { clearTimeout(timer); start(); });
 })();
