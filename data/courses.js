@@ -40,7 +40,7 @@ window.CURRICULUM = {
     year: "",   // curriculum year beside the school name; normally taken from the semester label
     term: "",   // semester label for 개설여부; normally taken from the sheet column name ("2026-2 개설여부")
     sample: true,   // true shows the "샘플" banner and label; set false when official
-    source: "2026 항공·경영대학 물류전공 교과목 체계도",
+    source: "항공·경영대학 물류전공 교과목 체계도",
     contact: { name: "강수민", email: "suminkang@kau.ac.kr" },  // shown at the bottom of the page
     // Google Sheet to read the courses from ("웹에 게시" CSV link). While this is empty,
     // the courses saved below are shown. If the sheet cannot be reached, the page
