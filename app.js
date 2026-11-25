@@ -1,0 +1,260 @@
+/* Rendering and filtering. Content lives in data/courses.js. */
+(function () {
+  "use strict";
+
+  var DATA = window.CURRICULUM;
+  var COURSES = DATA.courses;
+  var BY_ID = {};
+  COURSES.forEach(function (c) { BY_ID[c.id] = c; });
+
+  var TYPE = {
+    major: "전공", basic: "기초필수", general: "교양필수", dept: "전공 내규 필수",
+    required: "전공필수", elective: "전공선택"
+  };
+  var TYPE_ORDER = ["required", "elective", "major", "basic", "general", "dept"];
+  var LANG = { ko: "한국어", en: "영어", both: "한국어·영어" };
+
+  var state = { q: "", year: null, type: null, inst: null, tags: [] };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s).replace(/[&<>"']/g, function (ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+    });
+  };
+  var tagLabel = function (k) { return DATA.tags[k] || k; };
+  var yearN = function (n) { return n + "학년"; };
+  var semN = function (n) { return n ? n + "학기" : "1·2학기"; };
+  var creditsText = function (n) { return n + "학점"; };
+  /* total credits of a list, or null when any course has no credits yet */
+  function sumCredits(list) {
+    var s = 0;
+    for (var i = 0; i < list.length; i++) {
+      if (typeof list[i].credits !== "number") return null;
+      s += list[i].credits;
+    }
+    return list.length ? s : null;
+  }
+
+  var TYPES_USED = TYPE_ORDER.filter(function (k) { return COURSES.some(function (c) { return c.type === k; }); });
+  var HAS_LANG = COURSES.some(function (c) { return c.language; });
+
+  /* ---------- theme: follows the device until the viewer picks one ---------- */
+  var root = document.documentElement;
+  function applyTheme(theme) {
+    root.dataset.theme = theme;
+    var label = theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환";
+    $("theme").setAttribute("aria-label", label);
+    $("theme").title = label;
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = theme === "dark" ? "#000000" : "#f5f5f7";
+  }
+  function savedTheme() {
+    try { var v = localStorage.getItem("kau-logis-theme"); return v === "light" || v === "dark" ? v : null; }
+    catch (e) { return null; }
+  }
+  $("theme").addEventListener("click", function () {
+    var next = root.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("kau-logis-theme", next); } catch (e) { /* ignore */ }
+    applyTheme(next);
+  });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
+    if (!savedTheme()) applyTheme(e.matches ? "dark" : "light");
+  });
+
+  /* ---------- filtering ---------- */
+  function matches(c) {
+    if (state.year && c.year !== state.year) return false;
+    if (state.type && c.type !== state.type) return false;
+    if (state.inst === "en" && c.language !== "en" && c.language !== "both") return false;
+    if (state.inst === "ko" && c.language !== "ko" && c.language !== "both") return false;
+    for (var i = 0; i < state.tags.length; i++) {
+      if (c.tags.indexOf(state.tags[i]) < 0) return false;
+    }
+    if (state.q) {
+      var hay = [c.code || "", c.name, c.description || "", c.note || "", c.instructor || "", TYPE[c.type] || ""]
+        .concat(c.tags.map(tagLabel)).join(" ").toLowerCase();
+      var words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+      for (var j = 0; j < words.length; j++) if (hay.indexOf(words[j]) < 0) return false;
+    }
+    return true;
+  }
+  function filtering() {
+    return !!(state.q || state.year || state.type || state.inst || state.tags.length);
+  }
+
+  /* ---------- pieces ---------- */
+  function chip(label, pressed, attrs) {
+    return '<button type="button" class="chip" aria-pressed="' + pressed + '" ' + attrs + ">" + esc(label) + "</button>";
+  }
+  function segBtn(label, pressed, attrs) {
+    return '<button type="button" aria-pressed="' + pressed + '" ' + attrs + ">" + esc(label) + "</button>";
+  }
+  function badges(c) {
+    var h = '<span class="badge ' + esc(c.type) + '">' + esc(TYPE[c.type] || c.type) + "</span>";
+    if (c.language === "en") h += '<span class="badge en">영어강의</span>';
+    if (c.language === "both") h += '<span class="badge en">한·영</span>';
+    return h;
+  }
+  function tagsHtml(c) {
+    return c.tags.map(function (k) { return '<span class="tag">' + esc(tagLabel(k)) + "</span>"; }).join("");
+  }
+
+  function card(c) {
+    return '<button type="button" class="card" data-id="' + esc(c.id) + '">' +
+      '<span class="card-head"><span class="card-name">' + esc(c.name) + "</span>" +
+      (typeof c.credits === "number" ? '<span class="card-credits">' + creditsText(c.credits) + "</span>" : "") + "</span>" +
+      (c.code ? '<span class="code">' + esc(c.code) + "</span>" : "") +
+      '<span class="card-meta">' + badges(c) + tagsHtml(c) + "</span></button>";
+  }
+
+  /* ---------- render ---------- */
+  function renderFilters() {
+    $("f-year").innerHTML = segBtn("전체", state.year === null, 'data-f="year" data-v=""') +
+      [1, 2, 3, 4].map(function (y) { return segBtn(yearN(y), state.year === y, 'data-f="year" data-v="' + y + '"'); }).join("");
+    $("f-type").innerHTML = segBtn("전체", state.type === null, 'data-f="type" data-v=""') +
+      TYPES_USED.map(function (v) { return segBtn(TYPE[v], state.type === v, 'data-f="type" data-v="' + v + '"'); }).join("");
+    $("row-lang").hidden = !HAS_LANG;
+    $("f-lang").innerHTML = segBtn("전체", state.inst === null, 'data-f="inst" data-v=""') +
+      ["ko", "en"].map(function (v) { return segBtn(LANG[v], state.inst === v, 'data-f="inst" data-v="' + v + '"'); }).join("");
+    $("f-tags").innerHTML = Object.keys(DATA.tags).map(function (k) {
+      return chip(tagLabel(k), state.tags.indexOf(k) >= 0, 'data-f="tag" data-v="' + esc(k) + '"');
+    }).join("");
+    var n = (state.year ? 1 : 0) + (state.type ? 1 : 0) + (state.inst ? 1 : 0);
+    $("f-count").hidden = !n;
+    $("f-count").textContent = n;
+  }
+
+  function semBlock(title, list, cls) {
+    var cr = sumCredits(list);
+    return '<div class="sem ' + cls + '"><h3>' + title + (cr !== null ? "<span>" + creditsText(cr) + "</span>" : "") + "</h3>" +
+      (list.length ? '<div class="cards">' + list.map(card).join("") + "</div>" : '<p class="none">해당 과목 없음</p>') +
+      "</div>";
+  }
+
+  function renderList() {
+    var shown = COURSES.filter(matches);
+    var total = sumCredits(shown);
+    $("count").textContent = "과목 " + shown.length + "개" + (total !== null ? " · " + creditsText(total) : "");
+    $("reset").hidden = !filtering();
+
+    if (!shown.length) {
+      $("list").innerHTML = '<p class="empty">조건에 맞는 과목이 없습니다.</p>';
+      return;
+    }
+    var html = "";
+    [1, 2, 3, 4].forEach(function (y) {
+      var inYear = shown.filter(function (c) { return c.year === y; });
+      if (!inYear.length) return;
+      var ycr = sumCredits(inYear);
+      var common = inYear.filter(function (c) { return !c.semester; });
+      html += '<section class="year"><h2>' + yearN(y) + (ycr !== null ? "<span>" + creditsText(ycr) + "</span>" : "") + "</h2>";
+      if (common.length) html += semBlock(semN(0), common, "common");
+      if (inYear.length > common.length) {
+        html += '<div class="sems">';
+        [1, 2].forEach(function (s) {
+          html += semBlock(semN(s), inYear.filter(function (c) { return c.semester === s; }), "");
+        });
+        html += "</div>";
+      }
+      html += "</section>";
+    });
+    $("list").innerHTML = html;
+  }
+
+  function relList(list) {
+    return '<div class="rel group">' + list.map(function (c) {
+      return '<button type="button" data-id="' + esc(c.id) + '"><span>' + esc(c.name) + "</span><small>" +
+        yearN(c.year) + " " + semN(c.semester) + "</small></button>";
+    }).join("") + "</div>";
+  }
+  function fact(label, value) { return "<div><dt>" + label + "</dt><dd>" + esc(value) + "</dd></div>"; }
+
+  function renderDetail(id) {
+    var c = BY_ID[id];
+    var dlg = $("detail");
+    if (!c) { if (dlg.open) dlg.close(); return; }
+    var pre = (c.prereqs || []).map(function (p) { return BY_ID[p]; }).filter(Boolean);
+    var next = COURSES.filter(function (x) { return (x.prereqs || []).indexOf(c.id) >= 0; });
+
+    dlg.innerHTML = '<div class="d-inner">' +
+      '<div class="d-top"><span class="code">' + esc(c.code || "") + '</span><button type="button" class="close" data-close>닫기</button></div>' +
+      '<h2 id="d-title">' + esc(c.name) + "</h2>" +
+      '<div class="card-meta">' + badges(c) + tagsHtml(c) + "</div>" +
+      (c.description ? '<p class="d-desc">' + esc(c.description) + "</p>" : "") +
+      (c.note ? '<p class="d-note">' + esc(c.note) + "</p>" : "") +
+      '<dl class="facts group">' +
+        fact("개설", yearN(c.year) + " " + semN(c.semester)) +
+        fact("구분", TYPE[c.type] || c.type) +
+        (typeof c.credits === "number" ? fact("학점", creditsText(c.credits)) : "") +
+        (c.language ? fact("강의언어", LANG[c.language] || c.language) : "") +
+        (c.instructor ? fact("담당교수", c.instructor) : "") +
+      "</dl>" +
+      (pre.length ? '<h3 class="d-h">먼저 들으면 좋은 과목</h3>' + relList(pre) : "") +
+      (next.length ? '<h3 class="d-h">이 과목 다음에 듣는 과목</h3>' + relList(next) : "") +
+      (c.syllabus ? '<a class="syllabus" target="_blank" rel="noopener" href="' + esc(c.syllabus) + '">강의계획서 보기</a>' : "") +
+      "</div>";
+    if (!dlg.open) dlg.showModal();
+    dlg.scrollTop = 0;
+  }
+
+  /* ---------- routing: #scm opens that course ---------- */
+  function currentId() { return decodeURIComponent(location.hash.slice(1)); }
+  function openCourse(id) { location.hash = encodeURIComponent(id); }
+  function clearHash() {
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  }
+  window.addEventListener("hashchange", function () { renderDetail(currentId()); });
+
+  /* ---------- events ---------- */
+  $("q").addEventListener("input", function (e) { state.q = e.target.value.trim(); renderList(); });
+
+  $("more-btn").addEventListener("click", function () {
+    var open = $("more").classList.toggle("open");
+    $("more").inert = !open;
+    this.setAttribute("aria-expanded", String(open));
+  });
+
+  document.querySelector(".bar").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-f]");
+    if (!b) return;
+    var f = b.dataset.f, v = b.dataset.v;
+    if (f === "year") state.year = v ? Number(v) : null;
+    else if (f === "type") state.type = v || null;
+    else if (f === "inst") state.inst = v || null;
+    else if (f === "tag") {
+      var i = state.tags.indexOf(v);
+      if (i >= 0) state.tags.splice(i, 1); else state.tags.push(v);
+    }
+    renderFilters();
+    renderList();
+  });
+
+  $("reset").addEventListener("click", function () {
+    state.q = ""; state.year = null; state.type = null; state.inst = null; state.tags = [];
+    $("q").value = "";
+    renderFilters();
+    renderList();
+  });
+
+  $("list").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-id]");
+    if (b) openCourse(b.dataset.id);
+  });
+
+  var dlg = $("detail");
+  dlg.addEventListener("click", function (e) {
+    if (e.target === dlg || e.target.closest("[data-close]")) { dlg.close(); return; }
+    var b = e.target.closest("[data-id]");
+    if (b) openCourse(b.dataset.id);
+  });
+  dlg.addEventListener("close", clearHash);
+
+  /* ---------- start ---------- */
+  applyTheme(root.dataset.theme || "light");
+  $("sample").hidden = !DATA.meta.sample;
+  $("updated").textContent = (DATA.meta.source ? "출처: " + DATA.meta.source + " · " : "") + "최종 수정 " + DATA.meta.updated;
+  renderFilters();
+  renderList();
+  if (currentId()) renderDetail(currentId());
+})();
