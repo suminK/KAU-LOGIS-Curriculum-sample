@@ -14,7 +14,7 @@
   var TYPE_ORDER = ["required", "elective", "major", "basic", "general", "dept"];
   var LANG = { ko: "한국어", en: "영어", both: "한국어·영어" };
 
-  var state = { q: "", year: null, sem: null, type: null, inst: null, tags: [] };
+  var state = { q: "", year: null, sem: null, type: null, inst: null, tags: [], open: false };
 
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) {
@@ -39,6 +39,9 @@
 
   var TYPES_USED = TYPE_ORDER.filter(function (k) { return COURSES.some(function (c) { return c.type === k; }); });
   var HAS_LANG = COURSES.some(function (c) { return c.language; });
+  /* 개설여부: whether a course is offered this semester (only when the data says so) */
+  var HAS_OPEN = COURSES.some(function (c) { return typeof c.open === "boolean"; });
+  var OPEN_TEXT = "이번 학기 개설", CLOSED_TEXT = "이번 학기 미개설";
 
   var CALM = window.matchMedia("(prefers-reduced-motion: reduce)");
   var EASE = "cubic-bezier(.32, .72, 0, 1)";
@@ -67,6 +70,7 @@
 
   /* ---------- filtering ---------- */
   function matches(c) {
+    if (state.open && !c.open) return false;
     if (state.year && c.year !== state.year) return false;
     /* courses not tied to one semester (semester 0) show under either */
     if (state.sem && c.semester && c.semester !== state.sem) return false;
@@ -85,7 +89,7 @@
     return true;
   }
   function filtering() {
-    return !!(state.q || state.year || state.sem || state.type || state.inst || state.tags.length);
+    return !!(state.q || state.open || state.year || state.sem || state.type || state.inst || state.tags.length);
   }
 
   /* ---------- pieces ---------- */
@@ -117,9 +121,12 @@
   }
 
   function card(c) {
-    return '<button type="button" class="card" data-id="' + esc(c.id) + '" data-flip="c-' + esc(c.id) + '">' +
-      '<span class="card-head"><span class="card-name">' + esc(c.name) + "</span>" +
-      (typeof c.credits === "number" ? '<span class="card-credits">' + creditsText(c.credits) + "</span>" : "") + "</span>" +
+    var closed = HAS_OPEN && !c.open;
+    return '<button type="button" class="card' + (closed ? " closed" : "") + '" data-id="' + esc(c.id) + '" data-flip="c-' + esc(c.id) + '"' +
+      (HAS_OPEN ? ' aria-label="' + esc(c.name + ", " + (closed ? CLOSED_TEXT : OPEN_TEXT)) + '"' : "") + ">" +
+      '<span class="card-head"><span class="card-name">' + esc(c.name) + '</span><span class="card-side">' +
+      (HAS_OPEN && c.open ? '<span class="open-mark">개설</span>' : "") +
+      (typeof c.credits === "number" ? '<span class="card-credits">' + creditsText(c.credits) + "</span>" : "") + "</span></span>" +
       (c.code ? '<span class="code">' + esc(c.code) + "</span>" : "") +
       (c.instructor ? '<span class="card-prof">' + esc(profText(c)) + "</span>" : "") +
       '<span class="card-meta">' + badges(c) + tagsHtml(c) + "</span></button>";
@@ -136,6 +143,7 @@
     $("row-lang").hidden = !HAS_LANG;
     $("f-lang").innerHTML = segBtn("전체", state.inst === null, 'data-f="inst" data-v=""') +
       ["ko", "en"].map(function (v) { return segBtn(LANG[v], state.inst === v, 'data-f="inst" data-v="' + v + '"'); }).join("");
+    $("f-open").hidden = !HAS_OPEN;
     $("f-tags").innerHTML = Object.keys(DATA.tags).map(function (k) {
       return chip(tagLabel(k), state.tags.indexOf(k) >= 0, 'data-f="tag" data-v="' + esc(k) + '"');
     }).join("");
@@ -144,6 +152,7 @@
   /* after the first build only the pressed state changes, so colours can fade */
   function syncFilters() {
     var cur = { year: state.year, sem: state.sem, type: state.type, inst: state.inst };
+    $("f-open").setAttribute("aria-checked", String(state.open));
     Array.prototype.forEach.call(document.querySelectorAll(".bar button[data-f]"), function (b) {
       var f = b.dataset.f, v = b.dataset.v;
       var on = f === "tag" ? state.tags.indexOf(v) >= 0 : (v === "" ? cur[f] === null : String(cur[f]) === v);
@@ -166,7 +175,9 @@
     }
     var shown = COURSES.filter(matches);
     var total = sumCredits(shown);
-    $("count").textContent = "과목 " + shown.length + "개" + (total !== null ? " · " + creditsText(total) : "");
+    var nOpen = shown.filter(function (c) { return c.open; }).length;
+    $("count").textContent = "과목 " + shown.length + "개" + (total !== null ? " · " + creditsText(total) : "") +
+      (HAS_OPEN && !state.open ? " · " + OPEN_TEXT + " " + nOpen + "개" : "");
     $("reset").hidden = !filtering();
 
     if (!shown.length) {
@@ -204,7 +215,8 @@
       '<div class="d-links">' + list.map(function (c) {
         var sub = yearN(c.year) + " " + semN(c.semester) + (c.instructor ? " · " + profText(c) : "");
         return '<button type="button" class="d-link" data-jump="' + esc(c.id) + '">' +
-          '<span><span class="d-link-name">' + esc(c.name) + '</span><span class="d-link-sub">' + esc(sub) + "</span></span>" +
+          '<span><span class="d-link-name">' + esc(c.name) + '</span><span class="d-link-sub">' + esc(sub) +
+          (HAS_OPEN && c.open ? ' · <span class="open-mark">개설</span>' : "") + "</span></span>" +
           ARROW + "</button>";
       }).join("") + "</div></section>";
   }
@@ -229,6 +241,7 @@
       '<div class="d-top"><span class="d-kicker ' + esc(c.type) + '">' + esc(kicker.join(" · ")) + "</span>" +
         '<button type="button" class="close" data-close aria-label="닫기" title="닫기">' + CLOSE + "</button></div>" +
       '<h2 id="d-title">' + esc(c.name) + "</h2>" +
+      (HAS_OPEN ? '<p class="d-open ' + (c.open ? "on" : "off") + '">' + (c.open ? OPEN_TEXT : CLOSED_TEXT) + "</p>" : "") +
       (c.instructor ? '<p class="d-prof">' + esc(profText(c)) + "</p>" : "") +
       '<div class="d-tags">' + tagsHtml(c) + "</div>" +
       descHtml(c.description) +
@@ -332,6 +345,7 @@
   $("q").addEventListener("input", function (e) { state.q = e.target.value.trim(); update(); });
 
   document.querySelector(".bar").addEventListener("click", function (e) {
+    if (e.target.closest("#f-open")) { state.open = !state.open; syncFilters(); update(); return; }
     var b = e.target.closest("button[data-f]");
     if (!b) return;
     var f = b.dataset.f, v = b.dataset.v;
@@ -348,7 +362,7 @@
   });
 
   function resetFilters() {
-    state.q = ""; state.year = null; state.sem = null; state.type = null; state.inst = null; state.tags = [];
+    state.q = ""; state.open = false; state.year = null; state.sem = null; state.type = null; state.inst = null; state.tags = [];
     $("q").value = "";
     syncFilters();
     update();

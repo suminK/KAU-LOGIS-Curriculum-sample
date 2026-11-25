@@ -7,10 +7,11 @@
    Sheet layout: first row = column names, one course per row.
    Columns (order does not matter, unknown columns are ignored):
      학년 · 학기 · 구분 · 과목명 · 담당교수 · 태그 · 설명 · 선수 과목 · 관련 과목
-     비고 · 학점 · 영어강의여부 · 학수번호
+     비고 · 학점 · 영어강의여부 · 개설여부 · 학수번호
    - 학기: 1 or 2; leave empty (or write 공통) for courses not tied to a semester
    - 태그, 선수 과목, 관련 과목: several values separated by commas
    - 영어강의여부: a checkbox (checked = taught in English)
+   - 개설여부: a checkbox (checked = offered this semester)
    - 설명: one paragraph, or several lines in one cell (Alt+Enter) for 개조식
 
    Tag names and course names that match nothing are left out of the page.
@@ -26,7 +27,7 @@
     "학년": "year", "학기": "semester", "구분": "type", "과목명": "name", "담당교수": "instructor",
     "태그": "tags", "설명": "description", "선수과목": "prereqs", "선수권장과목": "prereqs", "관련과목": "related",
     "비고": "note", "학점": "credits", "강의언어": "language", "영어강의여부": "english", "영어강의": "english",
-    "학수번호": "code"
+    "학수번호": "code", "개설여부": "open", "개설": "open"
   };
   var TYPES = {
     "전공": "major", "기초필수": "basic", "교양필수": "general", "전공내규필수": "dept",
@@ -123,6 +124,7 @@
       if (r.credits && !isNaN(parseFloat(r.credits))) c.credits = parseFloat(r.credits);
       if (r.language) c.language = LANGS[norm(r.language)] || undefined;
       if (r.english) c.language = yes(r.english) ? "en" : "ko";   /* checkbox */
+      if (head.indexOf("open") >= 0) c.open = yes(r.open);          /* checkbox: offered this semester */
       courses.push(c);
     });
     if (!courses.length) throw new Error("no course rows");
