@@ -69,7 +69,7 @@
       if (c.tags.indexOf(state.tags[i]) < 0) return false;
     }
     if (state.q) {
-      var hay = [c.code || "", c.name, c.description || "", c.note || "", c.instructor || "", TYPE[c.type] || ""]
+      var hay = [c.code || "", c.name, [].concat(c.description || []).join(" "), c.note || "", c.instructor || "", TYPE[c.type] || ""]
         .concat(c.tags.map(tagLabel)).join(" ").toLowerCase();
       var words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       for (var j = 0; j < words.length; j++) if (hay.indexOf(words[j]) < 0) return false;
@@ -95,6 +95,15 @@
   }
   function tagsHtml(c) {
     return c.tags.map(function (k) { return '<span class="tag">' + esc(tagLabel(k)) + "</span>"; }).join("");
+  }
+
+  /* description: one paragraph (text) or 개조식 lines (list of text) */
+  function descHtml(d) {
+    if (!d || !d.length) return "";
+    if (Array.isArray(d)) {
+      return '<ul class="d-desc d-lines">' + d.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
+    }
+    return '<p class="d-desc">' + esc(d) + "</p>";
   }
 
   function card(c) {
@@ -173,12 +182,17 @@
     if (!c) { if (dlg.open) dlg.close(); return; }
     var pre = (c.prereqs || []).map(function (p) { return BY_ID[p]; }).filter(Boolean);
     var next = COURSES.filter(function (x) { return (x.prereqs || []).indexOf(c.id) >= 0; });
+    /* related: listed on this course, or on another course pointing here */
+    var related = COURSES.filter(function (x) {
+      if (x.id === c.id || pre.indexOf(x) >= 0 || next.indexOf(x) >= 0) return false;
+      return (c.related || []).indexOf(x.id) >= 0 || (x.related || []).indexOf(c.id) >= 0;
+    });
 
     dlg.innerHTML = '<div class="d-inner">' +
       '<div class="d-top"><span class="code">' + esc(c.code || "") + '</span><button type="button" class="close" data-close>닫기</button></div>' +
       '<h2 id="d-title">' + esc(c.name) + "</h2>" +
       '<div class="card-meta">' + badges(c) + tagsHtml(c) + "</div>" +
-      (c.description ? '<p class="d-desc">' + esc(c.description) + "</p>" : "") +
+      descHtml(c.description) +
       (c.note ? '<p class="d-note">' + esc(c.note) + "</p>" : "") +
       '<dl class="facts group">' +
         fact("개설", yearN(c.year) + " " + semN(c.semester)) +
@@ -189,6 +203,7 @@
       "</dl>" +
       (pre.length ? '<h3 class="d-h">먼저 들으면 좋은 과목</h3>' + relList(pre) : "") +
       (next.length ? '<h3 class="d-h">이 과목 다음에 듣는 과목</h3>' + relList(next) : "") +
+      (related.length ? '<h3 class="d-h">함께 보면 좋은 과목</h3>' + relList(related) : "") +
       (c.syllabus ? '<a class="syllabus" target="_blank" rel="noopener" href="' + esc(c.syllabus) + '">강의계획서 보기</a>' : "") +
       "</div>";
     if (!dlg.open) dlg.showModal();
@@ -252,6 +267,13 @@
   $("sample").hidden = !DATA.meta.sample;
   document.documentElement.classList.toggle("is-sample", !!DATA.meta.sample);
   $("updated").textContent = (DATA.meta.source ? "출처: " + DATA.meta.source + " · " : "") + "최종 수정 " + DATA.meta.updated;
+  var contact = DATA.meta.contact;
+  if (contact && (contact.name || contact.email)) {
+    $("contact").hidden = false;
+    $("contact").innerHTML = "문의: " + esc(contact.name || "") +
+      (contact.name && contact.email ? " · " : "") +
+      (contact.email ? '<a href="mailto:' + esc(contact.email) + '">' + esc(contact.email) + "</a>" : "");
+  }
   renderFilters();
   renderList();
   if (currentId()) renderDetail(currentId());
