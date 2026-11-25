@@ -20,6 +20,8 @@
   "use strict";
 
   var DATA = window.CURRICULUM;
+  /* app.js is loaded with the same ?v= as this file, so both update together */
+  var VER = ((document.currentScript || {}).src || "").split("?")[1];
   var URL_ = DATA.meta.sheet;
   var WAIT = 6000;   /* ms before giving up on the sheet */
 
@@ -152,7 +154,7 @@
 
   function start() {
     var s = document.createElement("script");
-    s.src = "app.js";
+    s.src = "app.js" + (VER ? "?" + VER : "");
     document.body.appendChild(s);
   }
 
