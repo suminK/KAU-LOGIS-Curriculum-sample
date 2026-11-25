@@ -378,6 +378,18 @@
     DATA.meta.live || DATA.meta.stale ? "" : "최종 수정 " + DATA.meta.updated
   ].filter(Boolean).join(" · ");
   document.querySelector(".bar").hidden = !!DATA.meta.stale;
+  /* ?check in the address: list what the sheet loader could not use (for editors) */
+  if (/[?&]check\b/.test(location.search)) {
+    var probs = DATA.meta.problems;
+    $("check").hidden = false;
+    $("check").innerHTML = !DATA.meta.live
+      ? "<strong>시트 점검: 구글 시트에서 불러온 내용이 아닙니다.</strong>"
+      : !probs.length
+        ? "<strong>시트 점검: 문제가 없습니다. (과목 " + COURSES.length + "개)</strong>"
+        : "<strong>시트 점검: 확인이 필요한 항목 " + probs.length + "건</strong><ul>" + probs.map(function (p) {
+            return "<li><span>" + p.row + "행 " + esc(p.name) + "</span> — " + esc(p.text) + "</li>";
+          }).join("") + "</ul>";
+  }
   var contact = DATA.meta.contact;
   if (contact && (contact.name || contact.email)) {
     $("contact").hidden = false;

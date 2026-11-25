@@ -156,6 +156,15 @@ h1 { font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.1; letter-spacing: -
   margin-top: 1.25rem; padding: .6rem .9rem; border-radius: 12px;
   background: var(--warn-tint); color: var(--warn); font-size: .8125rem; font-weight: 500;
 }
+/* editors' report, shown with ?check in the address */
+.check {
+  margin-top: 1.25rem; padding: .8rem 1rem; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--sheet-bg); font-size: .875rem;
+}
+.check strong { display: block; }
+.check ul { margin: .5rem 0 0; padding-left: 1.1rem; }
+.check li { margin: .2rem 0; }
+.check li span { color: var(--muted); }
 .sample-pill {
   display: none; vertical-align: middle; margin-left: .35rem; padding: .2rem .55rem; border-radius: 999px;
   background: var(--warn-tint); color: var(--warn);

@@ -7,10 +7,14 @@
    Sheet layout: first row = column names, one course per row.
    Columns (order does not matter, unknown columns are ignored):
      학년 · 학기 · 구분 · 과목명 · 담당교수 · 태그 · 설명 · 선수 과목 · 관련 과목
-     비고 · 학점 · 강의언어 · 학수번호 · 강의계획서
+     비고 · 학점 · 영어강의여부 · 학수번호
    - 학기: 1 or 2; leave empty (or write 공통) for courses not tied to a semester
    - 태그, 선수 과목, 관련 과목: several values separated by commas
-   - 설명: one paragraph, or several lines in one cell (Alt+Enter) for 개조식 */
+   - 영어강의여부: a checkbox (checked = taught in English)
+   - 설명: one paragraph, or several lines in one cell (Alt+Enter) for 개조식
+
+   Tag names and course names that match nothing are left out of the page.
+   Open the page with ?check at the end of the address to see a list of them. */
 (function () {
   "use strict";
 
@@ -21,7 +25,8 @@
   var COLS = {
     "학년": "year", "학기": "semester", "구분": "type", "과목명": "name", "담당교수": "instructor",
     "태그": "tags", "설명": "description", "선수과목": "prereqs", "선수권장과목": "prereqs", "관련과목": "related",
-    "비고": "note", "학점": "credits", "강의언어": "language", "학수번호": "code", "강의계획서": "syllabus"
+    "비고": "note", "학점": "credits", "강의언어": "language", "영어강의여부": "english", "영어강의": "english",
+    "학수번호": "code"
   };
   var TYPES = {
     "전공": "major", "기초필수": "basic", "교양필수": "general", "전공내규필수": "dept",
@@ -35,6 +40,8 @@
 
   /* compare text ignoring spaces, dots and letter case */
   function norm(s) { return String(s || "").replace(/[\s·・.\-_/]/g, "").toLowerCase(); }
+  /* a ticked checkbox arrives as TRUE */
+  function yes(s) { return /^(true|y|yes|o|예|1|✓|✔)$/i.test(String(s || "").trim()); }
   function parts(s) {
     return String(s || "").split(/[,，;\n]/).map(function (x) { return x.trim(); }).filter(Boolean);
   }
@@ -70,34 +77,52 @@
     var oldId = {};   /* keep the ids of known courses so existing links still work */
     DATA.courses.forEach(function (c) { oldId[norm(c.name)] = c.id; });
 
+    var problems = DATA.meta.problems = [];   /* shown on the page with ?check */
+    function problem(c, text) { problems.push({ row: c._row, name: c.name, text: text }); }
+    /* a column named after a tag works as a checkbox for that tag */
+    var tagCols = rows[0].map(function (h, i) { return head[i] ? null : tagKey[norm(h)] || null; });
+
     var courses = [], idByName = {}, used = {};
-    rows.slice(1).forEach(function (cells) {
+    rows.slice(1).forEach(function (cells, n) {
       var r = {};
       head.forEach(function (key, i) { if (key) r[key] = String(cells[i] || "").trim(); });
       var year = parseInt(r.year, 10);
-      if (!r.name || !(year >= 1 && year <= 4)) return;   /* skip empty or unfinished rows */
+      if (!r.name && !r.year) return;                     /* empty row */
+      if (!r.name || !(year >= 1 && year <= 4)) {         /* unfinished row: left out */
+        problem({ _row: n + 2, name: r.name || "(과목명 없음)" }, "과목명 또는 학년(1~4)이 없어 페이지에 나오지 않습니다");
+        return;
+      }
 
       var id = oldId[norm(r.name)] || r.name.replace(/\s+/g, "-");
-      for (var base = id, n = 2; used[id]; n++) id = base + "-" + n;
+      for (var base = id, dup = 2; used[id]; dup++) id = base + "-" + dup;
       used[id] = true;
-      if (!idByName[norm(r.name)]) idByName[norm(r.name)] = id;
+      if (idByName[norm(r.name)]) problem({ _row: n + 2, name: r.name }, "같은 이름의 과목이 이미 있습니다");
+      else idByName[norm(r.name)] = id;
 
       var sem = (String(r.semester || "").match(/[12]/) || [0])[0];
       var lines = String(r.description || "").split(/\n/)
         .map(function (x) { return x.replace(/^\s*[-•·*]\s*/, "").trim(); }).filter(Boolean);
       var c = {
         id: id, name: r.name, year: year, semester: Number(sem),
-        type: TYPES[norm(r.type)] || "major",
-        tags: parts(r.tags).map(function (t) { return tagKey[norm(t)]; }).filter(Boolean),
-        _pre: parts(r.prereqs), _rel: parts(r.related)
+        type: TYPES[norm(r.type)] || "major", tags: [],
+        _pre: parts(r.prereqs), _rel: parts(r.related), _row: n + 2
       };
+      if (r.type && !TYPES[norm(r.type)]) problem(c, "구분을 알 수 없어 '전공'으로 표시합니다: " + r.type);
+      parts(r.tags).forEach(function (t) {
+        var k = tagKey[norm(t)];
+        if (!k) problem(c, "태그를 알 수 없습니다: " + t);
+        else if (c.tags.indexOf(k) < 0) c.tags.push(k);
+      });
+      tagCols.forEach(function (k, i) {
+        if (k && yes(cells[i]) && c.tags.indexOf(k) < 0) c.tags.push(k);
+      });
       if (lines.length) c.description = lines.length > 1 ? lines : lines[0];
       if (r.instructor) c.instructor = r.instructor.replace(/\s*교수(님)?$/, "");
       if (r.note) c.note = r.note;
       if (r.code) c.code = r.code;
       if (r.credits && !isNaN(parseFloat(r.credits))) c.credits = parseFloat(r.credits);
       if (r.language) c.language = LANGS[norm(r.language)] || undefined;
-      if (/^https?:\/\//i.test(r.syllabus || "")) c.syllabus = r.syllabus;
+      if (r.english) c.language = yes(r.english) ? "en" : "ko";   /* checkbox */
       courses.push(c);
     });
     if (!courses.length) throw new Error("no course rows");
@@ -107,13 +132,17 @@
       ["_pre", "_rel"].forEach(function (k) {
         var ids = c[k].map(function (name) {
           var id = idByName[norm(name)];
-          if (!id && window.console) console.warn("[sheet] " + c.name + ": 과목을 찾을 수 없음 - " + name);
+          var col = k === "_pre" ? "선수 권장 과목" : "관련 과목";
+          if (!id) problem(c, col + "에 적힌 과목을 찾을 수 없습니다: " + name);
+          else if (id === c.id) problem(c, col + "에 자기 자신이 적혀 있습니다");
           return id;
-        }).filter(function (id) { return id && id !== c.id; });
+        }).filter(function (id, i, all) { return id && id !== c.id && all.indexOf(id) === i; });
         c[k === "_pre" ? "prereqs" : "related"] = ids;
         delete c[k];
       });
     });
+    courses.forEach(function (c) { delete c._row; });
+    if (problems.length && window.console) console.warn("[sheet] 확인이 필요한 항목 " + problems.length + "건 (?check 로 보기)");
     return courses;
   }
 
