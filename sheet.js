@@ -44,7 +44,9 @@
   /* a ticked checkbox arrives as TRUE */
   function yes(s) { return /^(true|y|yes|o|예|1|✓|✔)$/i.test(String(s || "").trim()); }
   function parts(s) {
-    return String(s || "").split(/[,，;\n]/).map(function (x) { return x.trim(); }).filter(Boolean);
+    /* stray quote marks around a value (left over from pasting) are ignored */
+    return String(s || "").split(/[,，;\n]/)
+      .map(function (x) { return x.replace(/["“”'‘’]/g, "").trim(); }).filter(Boolean);
   }
 
   /* CSV text -> rows of cells (handles quotes, commas and line breaks inside cells) */
