@@ -26,6 +26,7 @@
   var yearN = function (n) { return n + "학년"; };
   var semN = function (n) { return n ? n + "학기" : "1·2학기"; };
   var creditsText = function (n) { return n + "학점"; };
+  var profText = function (c) { return c.instructor ? c.instructor + " 교수님" : ""; };
   /* total credits of a list, or null when any course has no credits yet */
   function sumCredits(list) {
     var s = 0;
@@ -111,6 +112,7 @@
       '<span class="card-head"><span class="card-name">' + esc(c.name) + "</span>" +
       (typeof c.credits === "number" ? '<span class="card-credits">' + creditsText(c.credits) + "</span>" : "") + "</span>" +
       (c.code ? '<span class="code">' + esc(c.code) + "</span>" : "") +
+      (c.instructor ? '<span class="card-prof">' + esc(profText(c)) + "</span>" : "") +
       '<span class="card-meta">' + badges(c) + tagsHtml(c) + "</span></button>";
   }
 
@@ -168,11 +170,19 @@
     $("list").innerHTML = html;
   }
 
-  function relList(list) {
-    return '<div class="rel group">' + list.map(function (c) {
-      return '<button type="button" data-id="' + esc(c.id) + '"><span>' + esc(c.name) + "</span><small>" +
-        yearN(c.year) + " " + semN(c.semester) + "</small></button>";
-    }).join("") + "</div>";
+  var ARROW = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+  var CLOSE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+
+  /* a section of courses that jump back to the list when pressed */
+  function linkSection(title, list) {
+    if (!list.length) return "";
+    return '<section class="d-sec"><h3 class="d-h">' + title + '<span class="n">' + list.length + "</span></h3>" +
+      '<div class="d-links">' + list.map(function (c) {
+        var sub = yearN(c.year) + " " + semN(c.semester) + (c.instructor ? " · " + profText(c) : "");
+        return '<button type="button" class="d-link" data-jump="' + esc(c.id) + '">' +
+          '<span><span class="d-link-name">' + esc(c.name) + '</span><span class="d-link-sub">' + esc(sub) + "</span></span>" +
+          ARROW + "</button>";
+      }).join("") + "</div></section>";
   }
   function fact(label, value) { return "<div><dt>" + label + "</dt><dd>" + esc(value) + "</dd></div>"; }
 
@@ -181,33 +191,56 @@
     var dlg = $("detail");
     if (!c) { if (dlg.open) dlg.close(); return; }
     var pre = (c.prereqs || []).map(function (p) { return BY_ID[p]; }).filter(Boolean);
-    var next = COURSES.filter(function (x) { return (x.prereqs || []).indexOf(c.id) >= 0; });
     /* related: listed on this course, or on another course pointing here */
     var related = COURSES.filter(function (x) {
-      if (x.id === c.id || pre.indexOf(x) >= 0 || next.indexOf(x) >= 0) return false;
+      if (x.id === c.id || pre.indexOf(x) >= 0) return false;
       return (c.related || []).indexOf(x.id) >= 0 || (x.related || []).indexOf(c.id) >= 0;
     });
+    var kicker = (c.code ? [c.code] : []).concat([yearN(c.year) + " " + semN(c.semester), TYPE[c.type] || c.type]);
+    var facts =
+      (typeof c.credits === "number" ? fact("학점", creditsText(c.credits)) : "") +
+      (c.language ? fact("강의언어", LANG[c.language] || c.language) : "");
 
     dlg.innerHTML = '<div class="d-inner">' +
-      '<div class="d-top"><span class="code">' + esc(c.code || "") + '</span><button type="button" class="close" data-close>닫기</button></div>' +
+      '<div class="d-top"><span class="d-kicker ' + esc(c.type) + '">' + esc(kicker.join(" · ")) + "</span>" +
+        '<button type="button" class="close" data-close aria-label="닫기" title="닫기">' + CLOSE + "</button></div>" +
       '<h2 id="d-title">' + esc(c.name) + "</h2>" +
-      '<div class="card-meta">' + badges(c) + tagsHtml(c) + "</div>" +
+      (c.instructor ? '<p class="d-prof">' + esc(profText(c)) + "</p>" : "") +
+      '<div class="d-tags">' + tagsHtml(c) + "</div>" +
       descHtml(c.description) +
       (c.note ? '<p class="d-note">' + esc(c.note) + "</p>" : "") +
-      '<dl class="facts group">' +
-        fact("개설", yearN(c.year) + " " + semN(c.semester)) +
-        fact("구분", TYPE[c.type] || c.type) +
-        (typeof c.credits === "number" ? fact("학점", creditsText(c.credits)) : "") +
-        (c.language ? fact("강의언어", LANG[c.language] || c.language) : "") +
-        (c.instructor ? fact("담당교수", c.instructor) : "") +
-      "</dl>" +
-      (pre.length ? '<h3 class="d-h">먼저 들으면 좋은 과목</h3>' + relList(pre) : "") +
-      (next.length ? '<h3 class="d-h">이 과목 다음에 듣는 과목</h3>' + relList(next) : "") +
-      (related.length ? '<h3 class="d-h">함께 보면 좋은 과목</h3>' + relList(related) : "") +
+      (facts ? '<dl class="d-facts">' + facts + "</dl>" : "") +
+      linkSection("선수 권장 과목", pre) +
+      linkSection("관련 과목", related) +
+      (pre.length || related.length ? '<p class="d-hint">과목을 누르면 목록에서 위치를 보여줍니다.</p>' : "") +
       (c.syllabus ? '<a class="syllabus" target="_blank" rel="noopener" href="' + esc(c.syllabus) + '">강의계획서 보기</a>' : "") +
       "</div>";
     if (!dlg.open) dlg.showModal();
     dlg.scrollTop = 0;
+  }
+
+  /* ---------- jump: close the panel and point at a course in the list ---------- */
+  var flashTimer = null;
+  function cardEl(id) {
+    var cards = $("list").querySelectorAll(".card");
+    for (var i = 0; i < cards.length; i++) if (cards[i].dataset.id === id) return cards[i];
+    return null;
+  }
+  function jumpTo(id) {
+    var dlg = $("detail");
+    if (dlg.open) dlg.close();
+    if (!cardEl(id) && filtering()) resetFilters();   /* the course was filtered out */
+    var el = cardEl(id);
+    if (!el) return;
+    var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.focus({ preventScroll: true });
+    el.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" });
+    var old = $("list").querySelector(".card.flash");
+    if (old) old.classList.remove("flash");
+    void el.offsetWidth;                               /* restart the animation */
+    el.classList.add("flash");
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () { el.classList.remove("flash"); }, 3000);
   }
 
   /* ---------- routing: #scm opens that course ---------- */
@@ -242,12 +275,13 @@
     renderList();
   });
 
-  $("reset").addEventListener("click", function () {
+  function resetFilters() {
     state.q = ""; state.year = null; state.type = null; state.inst = null; state.tags = [];
     $("q").value = "";
     renderFilters();
     renderList();
-  });
+  }
+  $("reset").addEventListener("click", resetFilters);
 
   $("list").addEventListener("click", function (e) {
     var b = e.target.closest("[data-id]");
@@ -257,8 +291,8 @@
   var dlg = $("detail");
   dlg.addEventListener("click", function (e) {
     if (e.target === dlg || e.target.closest("[data-close]")) { dlg.close(); return; }
-    var b = e.target.closest("[data-id]");
-    if (b) openCourse(b.dataset.id);
+    var b = e.target.closest("[data-jump]");
+    if (b) jumpTo(b.dataset.jump);
   });
   dlg.addEventListener("close", clearHash);
 
