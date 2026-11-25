@@ -14,7 +14,7 @@
   var TYPE_ORDER = ["required", "elective", "major", "basic", "general", "dept"];
   var LANG = { ko: "한국어", en: "영어", both: "한국어·영어" };
 
-  var state = { q: "", year: null, type: null, inst: null, tags: [] };
+  var state = { q: "", year: null, sem: null, type: null, inst: null, tags: [] };
 
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) {
@@ -63,6 +63,8 @@
   /* ---------- filtering ---------- */
   function matches(c) {
     if (state.year && c.year !== state.year) return false;
+    /* courses not tied to one semester (semester 0) show under either */
+    if (state.sem && c.semester && c.semester !== state.sem) return false;
     if (state.type && c.type !== state.type) return false;
     if (state.inst === "en" && c.language !== "en" && c.language !== "both") return false;
     if (state.inst === "ko" && c.language !== "ko" && c.language !== "both") return false;
@@ -78,15 +80,17 @@
     return true;
   }
   function filtering() {
-    return !!(state.q || state.year || state.type || state.inst || state.tags.length);
+    return !!(state.q || state.year || state.sem || state.type || state.inst || state.tags.length);
   }
 
   /* ---------- pieces ---------- */
   function chip(label, pressed, attrs) {
     return '<button type="button" class="chip" aria-pressed="' + pressed + '" ' + attrs + ">" + esc(label) + "</button>";
   }
-  function segBtn(label, pressed, attrs) {
-    return '<button type="button" aria-pressed="' + pressed + '" ' + attrs + ">" + esc(label) + "</button>";
+  /* unit ("학년", "학기") is dropped on narrow screens, where the row label already says it */
+  function segBtn(label, pressed, attrs, unit) {
+    return '<button type="button" aria-pressed="' + pressed + '" ' + attrs + ">" + esc(label) +
+      (unit ? '<span class="u">' + unit + "</span>" : "") + "</button>";
   }
   function badges(c) {
     var h = '<span class="badge ' + esc(c.type) + '">' + esc(TYPE[c.type] || c.type) + "</span>";
@@ -119,7 +123,9 @@
   /* ---------- render ---------- */
   function renderFilters() {
     $("f-year").innerHTML = segBtn("전체", state.year === null, 'data-f="year" data-v=""') +
-      [1, 2, 3, 4].map(function (y) { return segBtn(yearN(y), state.year === y, 'data-f="year" data-v="' + y + '"'); }).join("");
+      [1, 2, 3, 4].map(function (y) { return segBtn(y, state.year === y, 'data-f="year" data-v="' + y + '"', "학년"); }).join("");
+    $("f-sem").innerHTML = segBtn("전체", state.sem === null, 'data-f="sem" data-v=""') +
+      [1, 2].map(function (n) { return segBtn(n, state.sem === n, 'data-f="sem" data-v="' + n + '"', "학기"); }).join("");
     $("f-type").innerHTML = segBtn("전체", state.type === null, 'data-f="type" data-v=""') +
       TYPES_USED.map(function (v) { return segBtn(TYPE[v], state.type === v, 'data-f="type" data-v="' + v + '"'); }).join("");
     $("row-lang").hidden = !HAS_LANG;
@@ -128,9 +134,6 @@
     $("f-tags").innerHTML = Object.keys(DATA.tags).map(function (k) {
       return chip(tagLabel(k), state.tags.indexOf(k) >= 0, 'data-f="tag" data-v="' + esc(k) + '"');
     }).join("");
-    var n = (state.year ? 1 : 0) + (state.type ? 1 : 0) + (state.inst ? 1 : 0);
-    $("f-count").hidden = !n;
-    $("f-count").textContent = n;
   }
 
   function semBlock(title, list, cls) {
@@ -159,8 +162,9 @@
       html += '<section class="year"><h2>' + yearN(y) + (ycr !== null ? "<span>" + creditsText(ycr) + "</span>" : "") + "</h2>";
       if (common.length) html += semBlock(semN(0), common, "common");
       if (inYear.length > common.length) {
-        html += '<div class="sems">';
-        [1, 2].forEach(function (s) {
+        /* with a semester picked, that semester takes the full width */
+        html += '<div class="sems' + (state.sem ? " one" : "") + '">';
+        (state.sem ? [state.sem] : [1, 2]).forEach(function (s) {
           html += semBlock(semN(s), inYear.filter(function (c) { return c.semester === s; }), "");
         });
         html += "</div>";
@@ -254,17 +258,12 @@
   /* ---------- events ---------- */
   $("q").addEventListener("input", function (e) { state.q = e.target.value.trim(); renderList(); });
 
-  $("more-btn").addEventListener("click", function () {
-    var open = $("more").classList.toggle("open");
-    $("more").inert = !open;
-    this.setAttribute("aria-expanded", String(open));
-  });
-
   document.querySelector(".bar").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-f]");
     if (!b) return;
     var f = b.dataset.f, v = b.dataset.v;
     if (f === "year") state.year = v ? Number(v) : null;
+    else if (f === "sem") state.sem = v ? Number(v) : null;
     else if (f === "type") state.type = v || null;
     else if (f === "inst") state.inst = v || null;
     else if (f === "tag") {
@@ -276,7 +275,7 @@
   });
 
   function resetFilters() {
-    state.q = ""; state.year = null; state.type = null; state.inst = null; state.tags = [];
+    state.q = ""; state.year = null; state.sem = null; state.type = null; state.inst = null; state.tags = [];
     $("q").value = "";
     renderFilters();
     renderList();

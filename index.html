@@ -36,19 +36,13 @@
     <div class="wrap">
       <div class="bar-row">
         <input id="q" type="search" autocomplete="off" placeholder="과목명, 키워드 검색" aria-label="과목명, 키워드 검색">
-        <button type="button" class="more-btn" id="more-btn" aria-expanded="false" aria-controls="more">
-          <span>필터</span><span class="count" id="f-count" hidden></span>
-        </button>
       </div>
       <div class="chips" id="f-tags"></div>
-      <div class="more" id="more" inert>
-        <div class="more-inner">
-          <div class="filter-rows">
-            <div class="row"><span class="row-label">학년</span><div class="seg" id="f-year"></div></div>
-            <div class="row"><span class="row-label">구분</span><div class="seg" id="f-type"></div></div>
-            <div class="row" id="row-lang"><span class="row-label">강의언어</span><div class="seg" id="f-lang"></div></div>
-          </div>
-        </div>
+      <div class="filter-rows">
+        <div class="row"><span class="row-label">학년</span><div class="seg" id="f-year"></div></div>
+        <div class="row"><span class="row-label">학기</span><div class="seg" id="f-sem"></div></div>
+        <div class="row"><span class="row-label">구분</span><div class="seg" id="f-type"></div></div>
+        <div class="row" id="row-lang"><span class="row-label">강의언어</span><div class="seg" id="f-lang"></div></div>
       </div>
     </div>
   </div>
