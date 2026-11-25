@@ -367,7 +367,12 @@
   applyTheme(root.dataset.theme || "light");
   $("sample").hidden = !DATA.meta.sample;
   document.documentElement.classList.toggle("is-sample", !!DATA.meta.sample);
-  $("updated").textContent = (DATA.meta.source ? "출처: " + DATA.meta.source + " · " : "") + "최종 수정 " + DATA.meta.updated;
+  /* courses read from the sheet carry no date; a failed read shows the saved copy */
+  $("updated").textContent = [
+    DATA.meta.source ? "출처: " + DATA.meta.source : "",
+    DATA.meta.live ? "" : "최종 수정 " + DATA.meta.updated,
+    DATA.meta.stale ? "최신 정보를 불러오지 못해 저장된 내용을 표시합니다" : ""
+  ].filter(Boolean).join(" · ");
   var contact = DATA.meta.contact;
   if (contact && (contact.name || contact.email)) {
     $("contact").hidden = false;
