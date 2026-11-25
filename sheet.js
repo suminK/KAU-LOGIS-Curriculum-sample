@@ -16,7 +16,8 @@
      the name it uses "term" from data/courses.js.
    - 설명: one paragraph, or several lines in one cell (Alt+Enter) for 개조식
 
-   Tag names and course names that match nothing are left out of the page.
+   Tag names that match nothing are left out of the page. Course names in
+   선수 과목 / 관련 과목 that are not in the list are shown as plain names (no link).
    Open the page with ?check at the end of the address to see a list of them. */
 (function () {
   "use strict";
@@ -147,14 +148,19 @@
     /* course names in 선수 과목 / 관련 과목 -> ids; names that match nothing are left out */
     courses.forEach(function (c) {
       ["_pre", "_rel"].forEach(function (k) {
+        var others = [];   /* names outside the list: shown as plain text, not as links */
         var ids = c[k].map(function (name) {
           var id = idByName[norm(name)];
           var col = k === "_pre" ? "선수 권장 과목" : "관련 과목";
-          if (!id) problem(c, col + "에 적힌 과목을 찾을 수 없습니다: " + name);
+          if (!id) {
+            if (others.indexOf(name) < 0) others.push(name);
+            problem(c, col + "의 과목이 목록에 없어 링크 없이 이름만 표시합니다: " + name);
+          }
           else if (id === c.id) problem(c, col + "에 자기 자신이 적혀 있습니다");
           return id;
         }).filter(function (id, i, all) { return id && id !== c.id && all.indexOf(id) === i; });
         c[k === "_pre" ? "prereqs" : "related"] = ids;
+        if (others.length) c[k === "_pre" ? "prereqsOther" : "relatedOther"] = others;
         delete c[k];
       });
     });
