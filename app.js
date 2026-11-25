@@ -253,6 +253,7 @@
   /* ---------- start ---------- */
   applyTheme(root.dataset.theme || "light");
   $("sample").hidden = !DATA.meta.sample;
+  document.documentElement.classList.toggle("is-sample", !!DATA.meta.sample);
   $("updated").textContent = (DATA.meta.source ? "출처: " + DATA.meta.source + " · " : "") + "최종 수정 " + DATA.meta.updated;
   renderFilters();
   renderList();

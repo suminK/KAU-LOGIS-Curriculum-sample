@@ -35,7 +35,7 @@
 window.CURRICULUM = {
   meta: {
     updated: "2026-11-25",
-    sample: false,
+    sample: true,   // true shows the "샘플" banner and label; set false when official
     source: "2026 항공·경영대학 물류전공 교과목 체계도"
   },
 

@@ -172,6 +172,12 @@ h1 { font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.1; letter-spacing: -
   margin-top: 1.25rem; padding: .6rem .9rem; border-radius: 12px;
   background: var(--warn-tint); color: var(--warn); font-size: .8125rem; font-weight: 500;
 }
+.sample-pill {
+  display: none; vertical-align: middle; margin-left: .35rem; padding: .2rem .55rem; border-radius: 999px;
+  background: var(--warn-tint); color: var(--warn);
+  font-size: .75rem; font-weight: 600; letter-spacing: 0; line-height: 1.2;
+}
+.is-sample .sample-pill { display: inline-block; }
 .summary {
   display: flex; justify-content: space-between; align-items: center;
   margin-top: 1rem; min-height: 1.5rem;
